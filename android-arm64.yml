@@ -1,0 +1,32 @@
+name: Android ARM64 feasibility test
+on:
+  workflow_dispatch:
+jobs:
+  android-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Gearmulator
+        uses: actions/checkout@v4
+        with:
+          repository: joelanders/gearmulator-md-mm
+          ref: release/md-mm-alpha
+          submodules: recursive
+          path: gearmulator
+      - name: Configure Android ARM64
+        run: |
+          cmake -S gearmulator -B build-android -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-21 \
+            -Dgearmulator_BUILD_JUCEPLUGIN=OFF \
+            -DCMAKE_BUILD_TYPE=Release
+      - name: Compile
+        run: cmake --build build-android --parallel 2
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arm64-diagnostics
+          path: build-android/CMakeCache.txt
+          if-no-files-found: ignore
